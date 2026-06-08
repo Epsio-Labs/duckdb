@@ -211,6 +211,14 @@ bool LateMaterialization::TryLateMaterialization(unique_ptr<LogicalOperator> &op
 		}
 	}
 	auto &get = child.get().Cast<LogicalGet>();
+	// [pivot] Columns referenced only by pushed-down table filters are still read
+	// by the scan, so deferring them via late materialization just re-reads data
+	// the scan already has. Count them as referenced so the benefit check below
+	// doesn't defer them (otherwise e.g. `WHERE s <> '' ORDER BY t LIMIT n` reads
+	// `s` for the filter and then fetches it again for the surviving rows).
+	for (auto &entry : get.table_filters) {
+		column_references[ColumnBinding(get.table_index, entry.GetIndex())];
+	}
 	if (column_references.size() >= get.GetColumnIds().size()) {
 		// we do not benefit from late materialization
 		// we need all of the columns to compute the root node anyway (Top-N/Limit/etc)
