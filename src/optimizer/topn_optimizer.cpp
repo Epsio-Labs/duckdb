@@ -39,20 +39,32 @@ bool TopN::CanOptimize(LogicalOperator &op, optional_ptr<ClientContext> context)
 			child_op->EstimateCardinality(*context);
 		}
 
-		if (child_op->has_estimated_cardinality) {
-			// only check if we should switch to full sorting if we have estimated cardinality
-			auto constant_limit = static_cast<double>(limit.limit_val.GetConstantValue());
-			if (limit.offset_val.Type() == LimitNodeType::CONSTANT_VALUE) {
-				constant_limit += static_cast<double>(limit.offset_val.GetConstantValue());
-			}
-			auto child_card = static_cast<double>(child_op->estimated_cardinality);
-
-			// if the limit is > 0.7% of the child cardinality, sorting the whole table is faster
-			bool limit_is_large = constant_limit > 5000;
-			if (constant_limit > child_card * 0.007 && limit_is_large) {
-				return false;
-			}
-		}
+		// --- Pivot patch -----------------------------------------------------
+		// Upstream DuckDB bails out of Top-N fusion here when `limit + offset`
+		// is both large in absolute terms (> 5000) and large relative to the
+		// child cardinality (> 0.7%), on the theory that fully sorting the input
+		// is cheaper than maintaining a big Top-N heap. That trade-off is about
+		// *DuckDB's own physical execution* — but Pivot never runs DuckDB's
+		// physical plan. It consumes only this logical plan and re-plans the
+		// `LogicalTopN` into its own distributed Top-N operator, where every
+		// worker keeps just `limit + offset` rows and the windows are merged;
+		// that path is efficient at any window size. Worse, the shape the
+		// bail-out produces instead — a `LogicalLimit` sitting above a
+		// `LogicalOrder` — is one Pivot's bridge does not translate at all, so
+		// for us the heuristic turns a supported query into an unsupported one
+		// (e.g. ClickBench Q41: `... ORDER BY ... LIMIT 10 OFFSET 10000`).
+		//
+		// So we drop the bail-out entirely: for Pivot the fused `LogicalTopN`
+		// is always the desired — and only translatable — shape. The original
+		// upstream heuristic was:
+		//
+		//     if (child_op->has_estimated_cardinality) {
+		//         auto constant_limit = limit + offset;
+		//         bool limit_is_large = constant_limit > 5000;
+		//         if (constant_limit > child_op->estimated_cardinality * 0.007 && limit_is_large)
+		//             return false;
+		//     }
+		// ---------------------------------------------------------------------
 
 		while (child_op->type == LogicalOperatorType::LOGICAL_PROJECTION) {
 			D_ASSERT(!child_op->children.empty());
