@@ -35,6 +35,7 @@ static const DefaultOptimizerType internal_optimizer_types[] = {
     {"build_side_probe_side", OptimizerType::BUILD_SIDE_PROBE_SIDE},
     {"compressed_materialization", OptimizerType::COMPRESSED_MATERIALIZATION},
     {"duplicate_groups", OptimizerType::DUPLICATE_GROUPS},
+    {"derived_groups", OptimizerType::DERIVED_GROUPS},
     {"reorder_filter", OptimizerType::REORDER_FILTER},
     {"sampling_pushdown", OptimizerType::SAMPLING_PUSHDOWN},
     {"join_filter_pushdown", OptimizerType::JOIN_FILTER_PUSHDOWN},

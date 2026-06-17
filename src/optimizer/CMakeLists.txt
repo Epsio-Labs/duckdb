@@ -34,6 +34,7 @@ add_library_unity(
   outer_join_simplification.cpp
   join_elimination.cpp
   regex_range_filter.cpp
+  remove_derived_groups.cpp
   remove_duplicate_groups.cpp
   remove_unused_columns.cpp
   row_group_pruner.cpp

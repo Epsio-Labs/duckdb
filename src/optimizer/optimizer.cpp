@@ -22,6 +22,7 @@
 #include "duckdb/optimizer/join_order/join_order_optimizer.hpp"
 #include "duckdb/optimizer/limit_pushdown.hpp"
 #include "duckdb/optimizer/regex_range_filter.hpp"
+#include "duckdb/optimizer/remove_derived_groups.hpp"
 #include "duckdb/optimizer/remove_duplicate_groups.hpp"
 #include "duckdb/optimizer/remove_unused_columns.hpp"
 #include "duckdb/optimizer/row_group_pruner.hpp"
@@ -244,6 +245,12 @@ void Optimizer::RunBuiltInOptimizers() {
 	RunOptimizer(OptimizerType::DUPLICATE_GROUPS, [&]() {
 		RemoveDuplicateGroups remove;
 		remove.VisitOperator(*plan);
+	});
+
+	// Remove groups that are functionally determined by other groups (e.g. GROUP BY x, x - 1)
+	RunOptimizer(OptimizerType::DERIVED_GROUPS, [&]() {
+		RemoveDerivedGroups remove(*this);
+		plan = remove.Optimize(std::move(plan));
 	});
 
 	// then we extract common subexpressions inside the different operators
