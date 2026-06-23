@@ -19,9 +19,11 @@ class Optimizer;
 //! For example, in
 //!     GROUP BY ClientIP, ClientIP - 1, ClientIP - 2, ClientIP - 3
 //! the last three keys are deterministic functions of ClientIP, so they take a single value within each ClientIP
-//! group: grouping by them adds nothing. We drop such keys from the aggregate (shrinking the grouping key) and
-//! recompute them in a projection placed directly above the aggregate, then rewire the bindings of the operators
-//! above so they read the recomputed values.
+//! group: grouping by them adds nothing. A constant key is the degenerate case (`GROUP BY 1, url`): it references no
+//! columns, takes a single value across the whole input, and is removed the same way (as long as another group key
+//! remains, so the aggregate does not collapse to a scalar). We drop such keys from the aggregate (shrinking the
+//! grouping key) and recompute them in a projection placed directly above the aggregate, then rewire the bindings of
+//! the operators above so they read the recomputed values.
 class RemoveDerivedGroups {
 public:
 	explicit RemoveDerivedGroups(Optimizer &optimizer);

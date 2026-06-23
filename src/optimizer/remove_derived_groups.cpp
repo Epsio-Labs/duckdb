@@ -72,7 +72,11 @@ unique_ptr<LogicalOperator> RemoveDerivedGroups::RewriteAggregate(unique_ptr<Log
 	}
 
 	// A group key is removable if it is a deterministic expression (not a plain column reference, not volatile, no
-	// subquery) that references at least one column and only determinant columns.
+	// subquery) whose referenced columns are all determinants. A key that references no columns is a constant
+	// (e.g. `GROUP BY 1, url`): it takes a single value across the whole input, so it too is constant within every
+	// group and removable. At least one group always survives: determinant keys are never removed and
+	// `determinant_bindings` is non-empty here, so the aggregate never collapses to a scalar aggregate (which would
+	// emit one row instead of zero on empty input).
 	vector<bool> removable(group_count, false);
 	bool any_removable = false;
 	for (auto group_idx : ProjectionIndex::GetIndexes(group_count)) {
@@ -83,17 +87,15 @@ unique_ptr<LogicalOperator> RemoveDerivedGroups::RewriteAggregate(unique_ptr<Log
 		if (group->IsVolatile() || group->HasSubquery()) {
 			continue; // value is not a pure function of its referenced columns
 		}
-		bool references_column = false;
 		bool only_determinants = true;
 		ExpressionIterator::VisitExpressionClass(
 		    *group, ExpressionClass::BOUND_COLUMN_REF, [&](const Expression &child) {
-			    references_column = true;
 			    if (determinant_bindings.find(child.Cast<BoundColumnRefExpression>().binding) ==
 			        determinant_bindings.end()) {
 				    only_determinants = false;
 			    }
 		    });
-		if (references_column && only_determinants) {
+		if (only_determinants) {
 			removable[group_idx] = true;
 			any_removable = true;
 		}

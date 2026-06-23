@@ -1,0 +1,61 @@
+# name: test/sql/optimizer/test_derived_groups_optimizer.test
+# description: Test RemoveDerivedGroups optimizer
+# group: [optimizer]
+
+statement ok
+pragma enable_verification;
+
+# Disable compressed materialization (as pivot runs) so a constant group key
+# stays a bare literal and the optimized-plan group lists are free of
+# __internal_compress wrappers, keeping the assertions below stable.
+statement ok
+pragma disabled_optimizers='compressed_materialization,empty_result_pullup';
+
+statement ok
+create table hits(url varchar, client_ip int);
+
+statement ok
+insert into hits values ('a', 10), ('a', 10), ('b', 20), ('b', 20), ('b', 30);
+
+# A constant group key (GROUP BY 1) is removed from the grouping and re-emitted
+# by a projection, so the result is unchanged: one group per url.
+query III
+select 1, url, count(*) c from hits group by 1, url order by c desc, url;
+----
+1	b	3
+1	a	2
+
+# A key derived from another group key is likewise redundant within each group.
+query II
+select client_ip, client_ip - 1 from hits group by client_ip, client_ip - 1 order by 1;
+----
+10	9
+20	19
+30	29
+
+# All-constant grouping has no determinant column to anchor on, so the rule
+# leaves it untouched; the result is still a single group.
+query III
+select 1, 2, count(*) from hits group by 1, 2;
+----
+1	2	5
+
+# Empty input still yields zero rows: the surviving `url` keeps this a grouped
+# aggregate, not a scalar one (which would emit a single row).
+query III
+select 1, url, count(*) from hits where false group by 1, url;
+----
+
+statement ok
+pragma disable_verification;
+
+statement ok
+pragma explain_output='optimized_only';
+
+# The constant is gone from the aggregate's Groups (only `url` remains): the
+# char class spans the box-drawing/whitespace between "Groups:" and "url" but
+# would be broken by an intervening `1`, so this fails if the constant survives.
+query II
+explain select 1, url, count(*) c from hits group by 1, url;
+----
+logical_opt	<REGEX>:.*Groups:[^A-Za-z0-9]*url.*
