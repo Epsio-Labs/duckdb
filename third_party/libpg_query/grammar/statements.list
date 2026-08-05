@@ -6,6 +6,7 @@ AnalyzeStmt
 AttachStmt
 CallStmt
 CheckPointStmt
+CompactStmt
 CopyStmt
 CreateAsStmt
 CreateSecretStmt

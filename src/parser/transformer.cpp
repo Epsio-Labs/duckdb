@@ -206,6 +206,8 @@ unique_ptr<SQLStatement> Transformer::TransformStatementInternal(duckdb_libpgque
 		return TransformSet(PGCast<duckdb_libpgquery::PGVariableSetStmt>(stmt));
 	case duckdb_libpgquery::T_PGCheckPointStmt:
 		return TransformCheckpoint(PGCast<duckdb_libpgquery::PGCheckPointStmt>(stmt));
+	case duckdb_libpgquery::T_PGCompactStmt:
+		return TransformCompact(PGCast<duckdb_libpgquery::PGCompactStmt>(stmt));
 	case duckdb_libpgquery::T_PGLoadStmt:
 		return TransformLoad(PGCast<duckdb_libpgquery::PGLoadStmt>(stmt));
 	case duckdb_libpgquery::T_PGCreateTypeStmt:

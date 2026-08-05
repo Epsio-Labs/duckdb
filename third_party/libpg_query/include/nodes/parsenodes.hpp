@@ -2003,6 +2003,16 @@ typedef struct PGCheckPointStmt {
 } PGCheckPointStmt;
 
 /* ----------------------
+ * Compact Statement
+ * ----------------------
+ */
+typedef struct PGCompactStmt {
+	PGNodeTag type;
+	PGRangeVar *relation; /* the table to compact */
+	bool final;           /* sweep until a pass merges nothing */
+} PGCompactStmt;
+
+/* ----------------------
  *		PREPARE Statement
  * ----------------------
  */
