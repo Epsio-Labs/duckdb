@@ -173,20 +173,14 @@ public:
 	static string GetExtensionName(const string &extension);
 	static bool IsFullPath(const string &extension);
 
-	//! Lookup a name + type in an ExtensionFunctionEntry list
+	//! Lookup a name + type in an ExtensionFunctionEntry list.
+	//! This build ships no loadable extensions, so the lookup always misses:
+	//! a missing entry then reports as plainly missing instead of suggesting
+	//! INSTALL/LOAD of an extension that cannot be installed.
 	template <size_t N>
-	static vector<pair<string, CatalogType>>
-	FindExtensionInFunctionEntries(const string &name, const ExtensionFunctionEntry (&entries)[N]) {
-		auto lcase = StringUtil::Lower(name);
-
-		vector<pair<string, CatalogType>> result;
-		for (idx_t i = 0; i < N; i++) {
-			auto &element = entries[i];
-			if (element.name == lcase) {
-				result.push_back(make_pair(element.extension, element.type));
-			}
-		}
-		return result;
+	static vector<pair<string, CatalogType>> FindExtensionInFunctionEntries(const string &,
+	                                                                        const ExtensionFunctionEntry (&)[N]) {
+		return {};
 	}
 
 	template <idx_t N>
@@ -202,17 +196,12 @@ public:
 		return entries + entry;
 	}
 
-	//! Lookup a name in an ExtensionEntry list
+	//! Lookup a name in an ExtensionEntry list.
+	//! This build ships no loadable extensions, so the lookup always misses:
+	//! a missing entry then reports as plainly missing instead of suggesting
+	//! INSTALL/LOAD of an extension that cannot be installed.
 	template <idx_t N>
-	static string FindExtensionInEntries(const string &name, const ExtensionEntry (&entries)[N]) {
-		auto lcase = StringUtil::Lower(name);
-
-		auto it =
-		    std::find_if(entries, entries + N, [&](const ExtensionEntry &element) { return element.name == lcase; });
-
-		if (it != entries + N && it->name == lcase) {
-			return it->extension;
-		}
+	static string FindExtensionInEntries(const string &, const ExtensionEntry (&)[N]) {
 		return "";
 	}
 

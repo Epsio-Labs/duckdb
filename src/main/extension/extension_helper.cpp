@@ -181,29 +181,10 @@ string ExtensionHelper::AddExtensionInstallHintToErrorMsg(ClientContext &context
                                                           const string &extension_name) {
 	return AddExtensionInstallHintToErrorMsg(DatabaseInstance::GetDatabase(context), base_error, extension_name);
 }
-string ExtensionHelper::AddExtensionInstallHintToErrorMsg(DatabaseInstance &db, const string &base_error,
-                                                          const string &extension_name) {
-	string install_hint;
-
-	if (!ExtensionHelper::CanAutoloadExtension(extension_name)) {
-		install_hint = "Please try installing and loading the " + extension_name + " extension:\nINSTALL " +
-		               extension_name + ";\nLOAD " + extension_name + ";\n\n";
-	} else if (!Settings::Get<AutoloadKnownExtensionsSetting>(db)) {
-		install_hint =
-		    "Please try installing and loading the " + extension_name + " extension by running:\nINSTALL " +
-		    extension_name + ";\nLOAD " + extension_name +
-		    ";\n\nAlternatively, consider enabling auto-install "
-		    "and auto-load by running:\nSET autoinstall_known_extensions=1;\nSET autoload_known_extensions=1;";
-	} else if (!Settings::Get<AutoinstallKnownExtensionsSetting>(db)) {
-		install_hint =
-		    "Please try installing the " + extension_name + " extension by running:\nINSTALL " + extension_name +
-		    ";\n\nAlternatively, consider enabling autoinstall by running:\nSET autoinstall_known_extensions=1;";
-	}
-
-	if (!install_hint.empty()) {
-		return base_error + "\n\n" + install_hint;
-	}
-
+string ExtensionHelper::AddExtensionInstallHintToErrorMsg(DatabaseInstance &, const string &base_error,
+                                                          const string &) {
+	// This build ships no loadable extensions, so INSTALL/LOAD can never
+	// resolve the error; surface the base error without the hint.
 	return base_error;
 }
 
