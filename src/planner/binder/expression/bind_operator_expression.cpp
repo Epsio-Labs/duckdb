@@ -218,9 +218,35 @@ BindResult ExpressionBinder::BindExpression(OperatorExpression &op, idx_t depth)
 	case ExpressionType::ARRAY_CONSTRUCTOR:
 		function_name = "list_value";
 		break;
-	case ExpressionType::ARROW:
-		function_name = "json_extract";
+	case ExpressionType::ARROW: {
+		// On a VARIANT, `->` reads a field exactly as `.` does, so bind it to
+		// the native variant_extract instead of json_extract. The two spellings
+		// then produce the same expression, which matters beyond tidiness:
+		// projection pushdown can fold a variant_extract into a scan's
+		// column_ids, while json_extract is an opaque scalar call to that pass,
+		// so an arrow read would fetch the whole document where a dotted one
+		// reads a single field.
+		D_ASSERT(op.children.size() == 2);
+		auto &arrow_input = BoundExpression::GetExpression(*op.children[0]);
+		if (arrow_input->return_type.id() == LogicalTypeId::VARIANT) {
+			function_name = "variant_extract";
+			// Name the field as a string, exactly as `.` does. This rewrites the
+			// key literal, not the result: a constant expression's return_type
+			// is the type of the value it holds. What `j->k` evaluates to stays
+			// variant_extract's to decide.
+			auto &key_exp = BoundExpression::GetExpression(*op.children[1]);
+			if (key_exp->GetExpressionClass() == ExpressionClass::BOUND_CONSTANT) {
+				auto &key_const = key_exp->Cast<BoundConstantExpression>();
+				if (!key_const.value.IsNull()) {
+					key_const.value = StringUtil::Format("%s", key_const.value.ToString());
+					key_const.return_type = LogicalType::VARCHAR;
+				}
+			}
+		} else {
+			function_name = "json_extract";
+		}
 		break;
+	}
 	case ExpressionType::OPERATOR_TRY: {
 		auto &expr = BoundExpression::GetExpression(*op.children[0]);
 		if (expr->HasSubquery()) {
