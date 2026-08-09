@@ -124,6 +124,8 @@ string LogicalOperatorToString(LogicalOperatorType type) {
 		return "SET";
 	case LogicalOperatorType::LOGICAL_RESET:
 		return "RESET";
+	case LogicalOperatorType::LOGICAL_COMPACT:
+		return "COMPACT";
 	case LogicalOperatorType::LOGICAL_LOAD:
 		return "LOAD";
 	case LogicalOperatorType::LOGICAL_INVALID:

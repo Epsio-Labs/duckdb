@@ -18,6 +18,7 @@ class SQLStatement;
 class AlterStatement;
 class AttachStatement;
 class CallStatement;
+class CompactStatement;
 class CopyStatement;
 class CreateStatement;
 class DetachStatement;

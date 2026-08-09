@@ -109,6 +109,8 @@ BoundStatement Binder::Bind(SQLStatement &statement) {
 		return Bind(statement.Cast<VacuumStatement>());
 	case StatementType::CALL_STATEMENT:
 		return Bind(statement.Cast<CallStatement>());
+	case StatementType::COMPACT_STATEMENT:
+		return Bind(statement.Cast<CompactStatement>());
 	case StatementType::EXPORT_STATEMENT:
 		return Bind(statement.Cast<ExportStatement>());
 	case StatementType::SET_STATEMENT:
