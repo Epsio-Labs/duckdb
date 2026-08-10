@@ -8,6 +8,7 @@ add_library_unity(
   copy_statement.cpp
   copy_database_statement.cpp
   create_statement.cpp
+  create_user_statement.cpp
   detach_statement.cpp
   delete_statement.cpp
   drop_statement.cpp

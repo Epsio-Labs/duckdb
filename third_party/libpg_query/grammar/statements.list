@@ -15,6 +15,7 @@ CreateFunctionStmt
 CreateSchemaStmt
 CreateSeqStmt
 CreateStmt
+CreateUserStmt
 CommentOnStmt
 DeallocateStmt
 DeleteStmt

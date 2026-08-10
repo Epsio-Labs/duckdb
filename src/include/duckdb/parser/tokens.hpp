@@ -21,6 +21,7 @@ class CallStatement;
 class CompactStatement;
 class CopyStatement;
 class CreateStatement;
+class CreateUserStatement;
 class DetachStatement;
 class DeleteStatement;
 class DropStatement;

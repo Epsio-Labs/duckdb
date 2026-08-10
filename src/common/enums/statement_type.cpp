@@ -69,6 +69,8 @@ string StatementTypeToString(StatementType type) {
 		return "MERGE_INTO";
 	case StatementType::COMPACT_STATEMENT:
 		return "COMPACT";
+	case StatementType::CREATE_USER_STATEMENT:
+		return "CREATE USER";
 	case StatementType::INVALID_STATEMENT:
 		break;
 	}

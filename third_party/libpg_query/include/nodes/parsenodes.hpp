@@ -2013,6 +2013,16 @@ typedef struct PGCompactStmt {
 } PGCompactStmt;
 
 /* ----------------------
+ * Create User Statement
+ * ----------------------
+ */
+typedef struct PGCreateUserStmt {
+	PGNodeTag type;
+	char *user;     /* the name of the user to create */
+	char *password; /* the password, or NULL when the PASSWORD clause is omitted */
+} PGCreateUserStmt;
+
+/* ----------------------
  *		PREPARE Statement
  * ----------------------
  */
