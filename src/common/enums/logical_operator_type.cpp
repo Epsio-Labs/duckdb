@@ -128,6 +128,8 @@ string LogicalOperatorToString(LogicalOperatorType type) {
 		return "COMPACT";
 	case LogicalOperatorType::LOGICAL_CREATE_USER:
 		return "CREATE_USER";
+	case LogicalOperatorType::LOGICAL_COPY_FROM_STDIN:
+		return "COPY_FROM_STDIN";
 	case LogicalOperatorType::LOGICAL_LOAD:
 		return "LOAD";
 	case LogicalOperatorType::LOGICAL_INVALID:

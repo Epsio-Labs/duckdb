@@ -17,6 +17,7 @@
 #include "duckdb/parser/query_node/insert_query_node.hpp"
 #include "duckdb/parser/tableref/basetableref.hpp"
 #include "duckdb/planner/binder.hpp"
+#include "duckdb/planner/operator/logical_copy_from_stdin.hpp"
 #include "duckdb/planner/operator/logical_copy_to_file.hpp"
 #include "duckdb/planner/operator/logical_get.hpp"
 #include "duckdb/planner/operator/logical_insert.hpp"
@@ -544,6 +545,49 @@ void Binder::BindCopyOptions(CopyInfo &info) {
 BoundStatement Binder::Bind(CopyStatement &stmt, CopyToType copy_to_type) {
 	// bind the copy options
 	BindCopyOptions(*stmt.info);
+
+	if (stmt.info->is_from && stmt.info->file_path == "/dev/stdin") {
+		// COPY <table> FROM STDIN: the rows arrive over the client protocol,
+		// so no copy function can read them here. Bind the target table and
+		// column list like an INSERT, but plan the statement as its own leaf
+		// operator; the engine consuming the plan runs the ingest.
+		BoundStatement result;
+		result.types = {LogicalType::BIGINT};
+		result.names = {"Count"};
+
+		BindSchemaOrCatalog(stmt.info->catalog, stmt.info->schema);
+		auto &table =
+		    Catalog::GetEntry<TableCatalogEntry>(context, stmt.info->catalog, stmt.info->schema, stmt.info->table);
+		GetStatementProperties().RegisterDBModify(table.catalog, context, DatabaseModificationType::INSERT_DATA);
+
+		vector<idx_t> column_indexes;
+		for (auto &name : stmt.info->select_list) {
+			string column_name = name;
+			auto index = table.GetColumns().GetColumnIndex(column_name);
+			if (!index.IsValid()) {
+				throw BinderException("Column \"%s\" of table \"%s\" does not exist", name, stmt.info->table);
+			}
+			if (std::find(column_indexes.begin(), column_indexes.end(), index.index) != column_indexes.end()) {
+				throw BinderException("Duplicate column name \"%s\" in COPY", name);
+			}
+			column_indexes.push_back(index.index);
+		}
+
+		// Only a format the statement spelled out travels; an auto-detected
+		// one is a guess off the pseudo path, which carries no information.
+		string format = stmt.info->is_format_auto_detected ? string() : stmt.info->format;
+		vector<pair<string, vector<Value>>> options(stmt.info->options.begin(), stmt.info->options.end());
+		std::sort(options.begin(), options.end(),
+		          [](const pair<string, vector<Value>> &a, const pair<string, vector<Value>> &b) {
+			          return a.first < b.first;
+		          });
+		result.plan = make_uniq<LogicalCopyFromStdin>(table, std::move(column_indexes), std::move(format),
+		                                              std::move(options));
+
+		auto &properties = GetStatementProperties();
+		properties.return_type = StatementReturnType::NOTHING;
+		return result;
+	}
 
 	if (!stmt.info->is_from && !stmt.info->select_statement) {
 		// copy table into file without a query
