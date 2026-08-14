@@ -254,6 +254,17 @@ string CatalogSearchPath::GetDefaultCatalog(const string &schema) const {
 vector<string> CatalogSearchPath::GetCatalogsForSchema(const string &schema) const {
 	vector<string> catalogs;
 	if (DefaultSchemaGenerator::IsDefaultSchema(schema)) {
+		// DuckDB normally resolves pg_catalog exclusively from the system catalog. Storage extensions can expose
+		// PostgreSQL compatibility entries whose contents belong to an attached catalog, such as metadata for
+		// remote tables. When an attached catalog explicitly puts pg_catalog on the search path, consult it first
+		// and retain the system catalog as the fallback for compatibility entries the extension does not provide.
+		if (StringUtil::CIEquals(schema, "pg_catalog")) {
+			for (auto &path : set_paths) {
+				if (StringUtil::CIEquals(path.schema, schema) && !StringUtil::CIEquals(path.catalog, SYSTEM_CATALOG)) {
+					catalogs.push_back(path.catalog);
+				}
+			}
+		}
 		catalogs.push_back(SYSTEM_CATALOG);
 	} else {
 		for (auto &path : paths) {

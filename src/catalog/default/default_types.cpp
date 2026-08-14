@@ -461,7 +461,7 @@ struct DefaultType {
 	bind_logical_type_function_t bind_function;
 };
 
-using builtin_type_array = std::array<DefaultType, 81>;
+using builtin_type_array = std::array<DefaultType, 89>;
 
 const builtin_type_array BUILTIN_TYPES = {{{"decimal", LogicalTypeId::DECIMAL, BindDecimalType},
                                            {"dec", LogicalTypeId::DECIMAL, BindDecimalType},
@@ -486,6 +486,7 @@ const builtin_type_array BUILTIN_TYPES = {{{"decimal", LogicalTypeId::DECIMAL, B
                                            {"char", LogicalTypeId::VARCHAR, BindVarcharType},
                                            {"nvarchar", LogicalTypeId::VARCHAR, BindVarcharType},
                                            {"text", LogicalTypeId::VARCHAR, BindVarcharType},
+                                           {"name", LogicalTypeId::VARCHAR, BindVarcharType},
                                            {"blob", LogicalTypeId::BLOB, nullptr},
                                            {"bytea", LogicalTypeId::BLOB, nullptr},
                                            {"varbinary", LogicalTypeId::BLOB, nullptr},
@@ -496,6 +497,13 @@ const builtin_type_array BUILTIN_TYPES = {{{"decimal", LogicalTypeId::DECIMAL, B
                                            {"uint128", LogicalTypeId::UHUGEINT, nullptr},
                                            {"bigint", LogicalTypeId::BIGINT, nullptr},
                                            {"oid", LogicalTypeId::BIGINT, nullptr},
+                                           {"regclass", LogicalTypeId::BIGINT, nullptr},
+                                           {"regnamespace", LogicalTypeId::BIGINT, nullptr},
+                                           {"regoperator", LogicalTypeId::BIGINT, nullptr},
+                                           {"regoper", LogicalTypeId::BIGINT, nullptr},
+                                           {"regproc", LogicalTypeId::BIGINT, nullptr},
+                                           {"regprocedure", LogicalTypeId::BIGINT, nullptr},
+                                           {"regtype", LogicalTypeId::BIGINT, nullptr},
                                            {"long", LogicalTypeId::BIGINT, nullptr},
                                            {"int8", LogicalTypeId::BIGINT, nullptr},
                                            {"int64", LogicalTypeId::BIGINT, nullptr},
@@ -598,7 +606,7 @@ DefaultTypeGenerator::DefaultTypeGenerator(Catalog &catalog, SchemaCatalogEntry 
 }
 
 unique_ptr<CatalogEntry> DefaultTypeGenerator::CreateDefaultEntry(ClientContext &context, const string &entry_name) {
-	if (schema.name != DEFAULT_SCHEMA) {
+	if (schema.name != DEFAULT_SCHEMA && schema.name != "pg_catalog") {
 		return nullptr;
 	}
 	auto entry = TryGetDefaultTypeEntry(entry_name);
@@ -616,7 +624,7 @@ unique_ptr<CatalogEntry> DefaultTypeGenerator::CreateDefaultEntry(ClientContext 
 
 vector<string> DefaultTypeGenerator::GetDefaultEntries() {
 	vector<string> result;
-	if (schema.name != DEFAULT_SCHEMA) {
+	if (schema.name != DEFAULT_SCHEMA && schema.name != "pg_catalog") {
 		return result;
 	}
 	auto &internal_types = BUILTIN_TYPES;

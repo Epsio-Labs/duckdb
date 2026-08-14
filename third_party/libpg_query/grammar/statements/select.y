@@ -1778,6 +1778,12 @@ Typename:	SimpleTypename opt_array_bounds
 qualified_typename:
 			IDENT '.' IDENT					{ $$ = list_make2(makeString($1), makeString($3)); }
 			| qualified_typename '.' IDENT	{ $$ = lappend($1, makeString($3)); }
+			| IDENT '.' CHAR_P				{ $$ = list_make2(makeString($1), makeString(pstrdup("char"))); }
+			| qualified_typename '.' CHAR_P	{ $$ = lappend($1, makeString(pstrdup("char"))); }
+			| IDENT '.' NAME_P				{ $$ = list_make2(makeString($1), makeString(pstrdup("name"))); }
+			| qualified_typename '.' NAME_P	{ $$ = lappend($1, makeString(pstrdup("name"))); }
+			| IDENT '.' TEXT_P				{ $$ = list_make2(makeString($1), makeString(pstrdup("text"))); }
+			| qualified_typename '.' TEXT_P	{ $$ = lappend($1, makeString(pstrdup("text"))); }
 	;
 
 opt_array_bounds:

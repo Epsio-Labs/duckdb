@@ -115,3 +115,16 @@ query I
 SELECT pg_catalog.format_pg_type('decimal', 'test');
 ----
 numeric
+
+query TTT
+SELECT typeof(NULL::pg_catalog.char), typeof(NULL::pg_catalog.name), typeof(NULL::pg_catalog.text)
+----
+VARCHAR	VARCHAR	VARCHAR
+
+query TTTTTTTT
+SELECT typeof(NULL::pg_catalog.oid), typeof(NULL::pg_catalog.regclass),
+       typeof(NULL::pg_catalog.regnamespace), typeof(NULL::pg_catalog.regoperator),
+       typeof(NULL::pg_catalog.regoper), typeof(NULL::pg_catalog.regproc),
+       typeof(NULL::pg_catalog.regprocedure), typeof(NULL::pg_catalog.regtype)
+----
+BIGINT	BIGINT	BIGINT	BIGINT	BIGINT	BIGINT	BIGINT	BIGINT
