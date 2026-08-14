@@ -1,10 +1,47 @@
 #include "duckdb/optimizer/empty_result_pullup.hpp"
+#include "duckdb/common/types/value.hpp"
+#include "duckdb/common/unordered_map.hpp"
+#include "duckdb/optimizer/optimizer.hpp"
+#include "duckdb/planner/binder.hpp"
+#include "duckdb/planner/expression/bound_constant_expression.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
 #include "duckdb/planner/operator/logical_comparison_join.hpp"
+#include "duckdb/planner/operator/logical_cross_product.hpp"
+#include "duckdb/planner/operator/logical_dummy_scan.hpp"
 #include "duckdb/planner/operator/logical_empty_result.hpp"
 #include "duckdb/planner/operator/logical_any_join.hpp"
+#include "duckdb/planner/operator/logical_projection.hpp"
 
 namespace duckdb {
+
+unique_ptr<LogicalOperator> EmptyResultPullup::CreateNullRhs(unique_ptr<LogicalOperator> &rhs_op) {
+	unordered_map<TableIndex, vector<unique_ptr<Expression>>> projection_groups;
+	auto column_bindings = rhs_op->GetColumnBindings();
+	rhs_op->ResolveOperatorTypes();
+	auto &types = rhs_op->types;
+
+	for (idx_t index = 0; index < column_bindings.size(); index++) {
+		projection_groups[column_bindings[index].table_index].emplace_back(
+		    make_uniq<BoundConstantExpression>(Value(types[index])));
+	}
+
+	auto create_null_projection = [&](TableIndex table_index) {
+		auto dummy_scan = make_uniq<LogicalDummyScan>(optimizer.binder.GenerateTableIndex());
+		auto projection = make_uniq<LogicalProjection>(table_index, std::move(projection_groups[table_index]));
+		projection->AddChild(std::move(dummy_scan));
+		return projection;
+	};
+
+	auto first = projection_groups.begin();
+	D_ASSERT(first != projection_groups.end());
+	unique_ptr<LogicalOperator> rhs = create_null_projection(first->first);
+	projection_groups.erase(first);
+
+	for (auto &group : projection_groups) {
+		rhs = LogicalCrossProduct::Create(std::move(rhs), create_null_projection(group.first));
+	}
+	return rhs;
+}
 
 unique_ptr<LogicalOperator> EmptyResultPullup::PullUpEmptyJoinChildren(unique_ptr<LogicalOperator> op) {
 	JoinType join_type = JoinType::INVALID;
@@ -58,6 +95,17 @@ unique_ptr<LogicalOperator> EmptyResultPullup::PullUpEmptyJoinChildren(unique_pt
 	case JoinType::LEFT: {
 		if (op->children[0]->type == LogicalOperatorType::LOGICAL_EMPTY_RESULT) {
 			op = make_uniq<LogicalEmptyResult>(std::move(op));
+		} else if ((join_type == JoinType::SINGLE || join_type == JoinType::LEFT) &&
+		           op->children[1]->type == LogicalOperatorType::LOGICAL_EMPTY_RESULT) {
+			// A left-preserving join against a proven-empty RHS emits every left
+			// row once and pads the RHS bindings with NULL values. Materialize that
+			// one NULL row so the join and any DELIM_GET dependency disappear.
+			if (op->children[1]->GetColumnBindings().empty()) {
+				op = std::move(op->children[0]);
+			} else {
+				auto null_rhs = CreateNullRhs(op->children[1]);
+				op = LogicalCrossProduct::Create(std::move(op->children[0]), std::move(null_rhs));
+			}
 		}
 		break;
 	}
@@ -95,6 +143,15 @@ unique_ptr<LogicalOperator> EmptyResultPullup::Optimize(unique_ptr<LogicalOperat
 			break;
 		}
 		return op;
+	}
+	case LogicalOperatorType::LOGICAL_UNION: {
+		for (auto &child : op->children) {
+			if (child->type != LogicalOperatorType::LOGICAL_EMPTY_RESULT) {
+				return op;
+			}
+		}
+		op = make_uniq<LogicalEmptyResult>(std::move(op));
+		break;
 	}
 	case LogicalOperatorType::LOGICAL_EXCEPT:
 	case LogicalOperatorType::LOGICAL_ANY_JOIN:

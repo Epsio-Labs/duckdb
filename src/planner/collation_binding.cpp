@@ -26,7 +26,12 @@ bool PushVarcharCollation(ClientContext &context, unique_ptr<Expression> &source
 	}
 	collation = StringUtil::Lower(collation);
 	// bind the collation
-	if (collation.empty() || collation == "binary" || collation == "c" || collation == "posix") {
+	// PostgreSQL clients qualify the database-default collation as
+	// `pg_catalog.default` in generated catalog queries. A dot denotes a chain
+	// of composable collations in DuckDB rather than a schema qualifier, so
+	// recognize PostgreSQL's spelling before splitting the name.
+	if (collation.empty() || collation == "binary" || collation == "c" || collation == "posix" ||
+	    collation == "pg_catalog.default") {
 		// no collation or binary collation: skip
 		return false;
 	}

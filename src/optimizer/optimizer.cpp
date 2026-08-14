@@ -195,7 +195,7 @@ void Optimizer::RunBuiltInOptimizers() {
 
 	// Pulls up empty results
 	RunOptimizer(OptimizerType::EMPTY_RESULT_PULLUP, [&]() {
-		EmptyResultPullup empty_result_pullup;
+		EmptyResultPullup empty_result_pullup(*this);
 		plan = empty_result_pullup.Optimize(std::move(plan));
 	});
 
@@ -313,6 +313,14 @@ void Optimizer::RunBuiltInOptimizers() {
 		StatisticsPropagator propagator(*this, *plan);
 		propagator.PropagateStatistics(plan);
 		statistics_map = propagator.GetStatisticsMap();
+	});
+
+	// Statistics propagation can prove an exact-cardinality table scan empty.
+	// Pull that result through the remaining relational operators now that the
+	// proof exists; the earlier empty-result pass necessarily ran before it.
+	RunOptimizer(OptimizerType::EMPTY_RESULT_PULLUP, [&]() {
+		EmptyResultPullup empty_result_pullup(*this);
+		plan = empty_result_pullup.Optimize(std::move(plan));
 	});
 
 	// rewrite row_number window function + filter on row_number to aggregate

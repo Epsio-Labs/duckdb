@@ -119,6 +119,13 @@ unique_ptr<NodeStatistics> StatisticsPropagator::PropagateStatistics(LogicalGet 
 	if (get.function.cardinality) {
 		node_stats = get.function.cardinality(context, get.bind_data.get());
 	}
+	// An exact maximum of zero is a proof that the scan is empty, not merely a
+	// cost estimate. Preserve its output types while removing the scan so joins,
+	// projections and correlated catalog expressions above it can collapse too.
+	if (node_stats && node_stats->has_max_cardinality && node_stats->max_cardinality == 0) {
+		ReplaceWithEmptyResult(node_ptr);
+		return make_uniq<NodeStatistics>(0U, 0U);
+	}
 	if (!get.function.statistics && !get.function.statistics_extended) {
 		// no column statistics to get
 		return std::move(node_stats);
