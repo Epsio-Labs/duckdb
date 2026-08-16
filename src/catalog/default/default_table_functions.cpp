@@ -82,6 +82,10 @@ SELECT * EXCLUDE(input_type, scope, aliases)
       'custom_profiling_settings'
   );
 )"},
+	// psql schema-qualifies unnest in generated describe queries (e.g. the
+	// extended-statistics footer of \d reads pg_catalog.unnest(stxkeys)), while
+	// DuckDB's own unnest lives in the default schema.
+	{"pg_catalog", "unnest", {"arr", nullptr}, {{nullptr, nullptr}}, "SELECT unnest(arr) AS unnest"},
 	{nullptr, nullptr, {nullptr}, {{nullptr, nullptr}}, nullptr}
 	};
 // clang-format on
