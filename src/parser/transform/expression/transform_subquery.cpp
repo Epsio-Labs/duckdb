@@ -41,8 +41,14 @@ unique_ptr<ParsedExpression> Transformer::TransformSubquery(duckdb_libpgquery::P
 			// simple IN
 			subquery_expr->comparison_type = ExpressionType::COMPARE_EQUAL;
 		} else {
+			// The tail of the name list, not the head: PostgreSQL's
+			// `x OPERATOR(pg_catalog.=) ANY (...)` syntax schema-qualifies the
+			// operator, parsing it as the list ("pg_catalog", "="). The
+			// operator symbol is always the last element, and a bare operator
+			// is a one-element list where head and tail coincide. See the same
+			// handling in TransformAExprInternal.
 			auto operator_name =
-			    string((PGPointerCast<duckdb_libpgquery::PGValue>(root.operName->head->data.ptr_value))->val.str);
+			    string((PGPointerCast<duckdb_libpgquery::PGValue>(root.operName->tail->data.ptr_value))->val.str);
 			subquery_expr->comparison_type = OperatorToExpressionType(operator_name);
 		}
 		if (subquery_expr->comparison_type != ExpressionType::COMPARE_EQUAL &&

@@ -87,7 +87,24 @@ unique_ptr<ParsedExpression> Transformer::TransformInExpression(const string &na
 }
 
 unique_ptr<ParsedExpression> Transformer::TransformAExprInternal(duckdb_libpgquery::PGAExpr &root) {
-	auto name = string(PGPointerCast<duckdb_libpgquery::PGValue>(root.name->head->data.ptr_value)->val.str);
+	// The operator's name is a list because PostgreSQL's `OPERATOR(schema.op)`
+	// syntax schema-qualifies the operator symbol. PostgreSQL clients generate
+	// it in catalog queries to be immune to search-path hijacking; psql, for
+	// example, matches name patterns in every describe command (`\dt public.*`,
+	// `\d t`, ...) with:
+	//
+	//   n.nspname OPERATOR(pg_catalog.~) '^(public)$' COLLATE pg_catalog.default
+	//
+	// The parse tree for that operator is the two-element list
+	// ("pg_catalog", "~"), while a bare `~` parses as the one-element list
+	// ("~"). The operator symbol is always the LAST element, so read the tail,
+	// which for the bare form is identical to the head. Reading the head would
+	// misread the qualified form: the name would become "pg_catalog" and the
+	// actual operator would be dropped, so the example above would bind a
+	// function called "pg_catalog" instead of a regex match. The qualifier
+	// itself can be discarded: DuckDB has no operator schemas, so a qualified
+	// operator can only ever mean the built-in one.
+	auto name = string(PGPointerCast<duckdb_libpgquery::PGValue>(root.name->tail->data.ptr_value)->val.str);
 
 	switch (root.kind) {
 	case duckdb_libpgquery::PG_AEXPR_OP_ALL:
