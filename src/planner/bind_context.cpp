@@ -719,6 +719,12 @@ void BindContext::AddView(TableIndex index, const string &alias, SubqueryRef &re
 
 void BindContext::AddSubquery(TableIndex index, const string &alias, TableFunctionRef &ref, BoundStatement &subquery) {
 	auto names = AliasColumnNames(alias, subquery.names, ref.column_name_alias);
+	// A table macro standing in for a function keeps PostgreSQL's function-RTE
+	// rule: with an alias and no column-alias list, the single output column
+	// is named after the alias (see the same rule in BindTableFunctionInternal).
+	if (names.size() == 1 && ref.column_name_alias.empty() && !ref.alias.empty()) {
+		names[0] = ref.alias;
+	}
 	AddGenericBinding(index, alias, names, subquery.types);
 }
 

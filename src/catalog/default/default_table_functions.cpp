@@ -82,10 +82,13 @@ SELECT * EXCLUDE(input_type, scope, aliases)
       'custom_profiling_settings'
   );
 )"},
-	// psql schema-qualifies unnest in generated describe queries (e.g. the
-	// extended-statistics footer of \d reads pg_catalog.unnest(stxkeys)), while
-	// DuckDB's own unnest lives in the default schema.
+	// psql schema-qualifies unnest and generate_series in generated describe
+	// queries (the extended-statistics footer of \d reads
+	// pg_catalog.unnest(stxkeys); the publication footer reads
+	// pg_catalog.generate_series(0, ...)), while DuckDB's own implementations
+	// live in the default schema.
 	{"pg_catalog", "unnest", {"arr", nullptr}, {{nullptr, nullptr}}, "SELECT unnest(arr) AS unnest"},
+	{"pg_catalog", "generate_series", {"start", "stop", nullptr}, {{nullptr, nullptr}}, "SELECT unnest(generate_series(start, stop)) AS generate_series"},
 	{nullptr, nullptr, {nullptr}, {{nullptr, nullptr}}, nullptr}
 	};
 // clang-format on

@@ -55,6 +55,9 @@ static const DefaultMacro internal_macros[] = {
 	// when needed; that stays a valid identifier either way.
 	{"pg_catalog", "quote_ident", "(ident) AS concat('\"', replace(ident, '\"', '\"\"'), '\"')"},
 	{"pg_catalog", "string_agg", "(arg, sep) AS string_agg(arg, sep)"},
+	// PostgreSQL's upper bound of a one-dimensional array: its length for a
+	// non-empty array (arrays are 1-based), NULL for an empty one.
+	{"pg_catalog", "array_upper", "(arr, dim) AS case when len(arr) = 0 then null else len(arr) end"},
 	{"pg_catalog", "format_pg_type", "(logical_type, type_name) AS case upper(logical_type) when 'FLOAT' then 'float4' when 'DOUBLE' then 'float8' when 'DECIMAL' then 'numeric' when 'ENUM' then lower(type_name) when 'VARCHAR' then 'varchar' when 'BLOB' then 'bytea' when 'TIMESTAMP' then 'timestamp' when 'TIME' then 'time' when 'TIMESTAMP WITH TIME ZONE' then 'timestamptz' when 'TIME WITH TIME ZONE' then 'timetz' when 'SMALLINT' then 'int2' when 'INTEGER' then 'int4' when 'BIGINT' then 'int8' when 'BOOLEAN' then 'bool' else lower(logical_type) end"},
 	{"pg_catalog", "format_type", "(type_oid, typemod) AS (select format_pg_type(logical_type, type_name) from duckdb_types() t where t.type_oid=type_oid) || case when typemod>0 then concat('(', typemod//1000, ',', typemod%1000, ')') else '' end"},
 	{"pg_catalog", "map_to_pg_oid", "(type_name) AS case type_name when 'bool' then 16 when 'int16' then 21 when 'int' then 23 when 'bigint' then 20 when 'date' then 1082 when 'time' then 1083 when 'datetime' then 1114 when 'dec' then 1700 when 'float' then 700 when 'double' then 701 when 'bpchar' then 1043 when 'binary' then 17 when 'interval' then 1186 when 'timestamptz' then 1184 when 'timestamp with time zone' then 1184 when 'timetz' then 1266 when 'time with time zone' then 1266 when 'bit' then 1560 when 'guid' then 2950 else null end"}, // map duckdb_oid to pg_oid. If no corresponding type, return null

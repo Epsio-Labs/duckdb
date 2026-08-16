@@ -274,6 +274,13 @@ BoundStatement Binder::BindTableFunctionInternal(TableFunction &table_function, 
 	for (idx_t i = 0; i < column_name_alias.size() && i < return_names.size(); i++) {
 		return_names[i] = column_name_alias[i];
 	}
+	// PostgreSQL names a function RTE's single output column after the table
+	// alias when no column-alias list is given: `FROM generate_series(...) s`
+	// yields a column named s. Clients depend on it; psql's publication
+	// footer of \d references the generated value as the bare alias.
+	if (return_names.size() == 1 && column_name_alias.empty() && !ref.alias.empty()) {
+		return_names[0] = ref.alias;
+	}
 	for (idx_t i = 0; i < return_names.size(); i++) {
 		if (return_names[i].empty()) {
 			return_names[i] = "C" + to_string(i);
