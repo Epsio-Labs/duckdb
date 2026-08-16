@@ -22,6 +22,7 @@ DeleteStmt
 DetachStmt
 DropSecretStmt
 DropStmt
+DropUserStmt
 ExecuteStmt
 ExplainStmt
 ExportStmt

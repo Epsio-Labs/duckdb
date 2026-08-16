@@ -2023,6 +2023,15 @@ typedef struct PGCreateUserStmt {
 } PGCreateUserStmt;
 
 /* ----------------------
+ * Drop User Statement
+ * ----------------------
+ */
+typedef struct PGDropUserStmt {
+	PGNodeTag type;
+	char *user; /* the name of the user to drop */
+} PGDropUserStmt;
+
+/* ----------------------
  *		PREPARE Statement
  * ----------------------
  */

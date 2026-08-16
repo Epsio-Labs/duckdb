@@ -207,6 +207,7 @@ private:
 	unique_ptr<SQLStatement> TransformCheckpoint(duckdb_libpgquery::PGCheckPointStmt &stmt);
 	unique_ptr<SQLStatement> TransformCompact(duckdb_libpgquery::PGCompactStmt &stmt);
 	unique_ptr<SQLStatement> TransformCreateUser(duckdb_libpgquery::PGCreateUserStmt &stmt);
+	unique_ptr<SQLStatement> TransformDropUser(duckdb_libpgquery::PGDropUserStmt &stmt);
 	unique_ptr<LoadStatement> TransformLoad(duckdb_libpgquery::PGLoadStmt &stmt);
 
 	//===--------------------------------------------------------------------===//

@@ -405,6 +405,7 @@ private:
 	BoundStatement Bind(CallStatement &stmt);
 	BoundStatement Bind(CompactStatement &stmt);
 	BoundStatement Bind(CreateUserStatement &stmt);
+	BoundStatement Bind(DropUserStatement &stmt);
 	BoundStatement Bind(ExportStatement &stmt);
 	BoundStatement Bind(ExtensionStatement &stmt);
 	BoundStatement Bind(SetStatement &stmt);

@@ -162,6 +162,7 @@ void Planner::CreatePlan(unique_ptr<SQLStatement> statement) {
 	case StatementType::MERGE_INTO_STATEMENT:
 	case StatementType::COMPACT_STATEMENT:
 	case StatementType::CREATE_USER_STATEMENT:
+	case StatementType::DROP_USER_STATEMENT:
 		CreatePlan(*statement);
 		break;
 	default:

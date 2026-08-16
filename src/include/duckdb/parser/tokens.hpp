@@ -22,6 +22,7 @@ class CompactStatement;
 class CopyStatement;
 class CreateStatement;
 class CreateUserStatement;
+class DropUserStatement;
 class DetachStatement;
 class DeleteStatement;
 class DropStatement;

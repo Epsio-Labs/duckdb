@@ -371,6 +371,7 @@ typedef enum PGNodeTag {
 	T_PGCheckPointStmt,
 	T_PGCompactStmt,
 	T_PGCreateUserStmt,
+	T_PGDropUserStmt,
 	T_PGCreateSchemaStmt,
 	T_PGCreateSecretStmt,
 	T_PGAlterDatabaseStmt,

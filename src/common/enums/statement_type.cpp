@@ -71,6 +71,8 @@ string StatementTypeToString(StatementType type) {
 		return "COMPACT";
 	case StatementType::CREATE_USER_STATEMENT:
 		return "CREATE USER";
+	case StatementType::DROP_USER_STATEMENT:
+		return "DROP USER";
 	case StatementType::INVALID_STATEMENT:
 		break;
 	}

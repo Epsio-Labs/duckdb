@@ -9,6 +9,7 @@ add_library_unity(
   bind_create.cpp
   bind_create_table.cpp
   bind_create_user.cpp
+  bind_drop_user.cpp
   bind_delete.cpp
   bind_detach.cpp
   bind_drop.cpp

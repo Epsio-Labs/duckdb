@@ -9,6 +9,7 @@
 #include "duckdb/parser/statement/delete_statement.hpp"
 #include "duckdb/parser/statement/detach_statement.hpp"
 #include "duckdb/parser/statement/drop_statement.hpp"
+#include "duckdb/parser/statement/drop_user_statement.hpp"
 #include "duckdb/parser/statement/execute_statement.hpp"
 #include "duckdb/parser/statement/explain_statement.hpp"
 #include "duckdb/parser/statement/extension_statement.hpp"

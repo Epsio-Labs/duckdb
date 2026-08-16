@@ -107,6 +107,7 @@ enum class LogicalOperatorType : uint8_t {
 	LOGICAL_CREATE_USER = 184,
 	LOGICAL_COPY_FROM_STDIN = 185,
 	LOGICAL_PIVOT_MATERIALIZE = 186,
+	LOGICAL_DROP_USER = 187,
 
 	// -----------------------------
 	// Secrets

@@ -2955,6 +2955,7 @@ const StringUtil::EnumStringLiteral *GetLogicalOperatorTypeValues() {
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_UPDATE_EXTENSIONS), "LOGICAL_UPDATE_EXTENSIONS" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_COMPACT), "LOGICAL_COMPACT" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_CREATE_USER), "LOGICAL_CREATE_USER" },
+		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_DROP_USER), "LOGICAL_DROP_USER" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_COPY_FROM_STDIN), "LOGICAL_COPY_FROM_STDIN" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_PIVOT_MATERIALIZE), "LOGICAL_PIVOT_MATERIALIZE" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_CREATE_SECRET), "LOGICAL_CREATE_SECRET" },
@@ -2965,12 +2966,12 @@ const StringUtil::EnumStringLiteral *GetLogicalOperatorTypeValues() {
 
 template<>
 const char* EnumUtil::ToChars<LogicalOperatorType>(LogicalOperatorType value) {
-	return StringUtil::EnumToString(GetLogicalOperatorTypeValues(), 67, "LogicalOperatorType", static_cast<uint32_t>(value));
+	return StringUtil::EnumToString(GetLogicalOperatorTypeValues(), 68, "LogicalOperatorType", static_cast<uint32_t>(value));
 }
 
 template<>
 LogicalOperatorType EnumUtil::FromString<LogicalOperatorType>(const char *value) {
-	return static_cast<LogicalOperatorType>(StringUtil::StringToEnum(GetLogicalOperatorTypeValues(), 67, "LogicalOperatorType", value));
+	return static_cast<LogicalOperatorType>(StringUtil::StringToEnum(GetLogicalOperatorTypeValues(), 68, "LogicalOperatorType", value));
 }
 
 const StringUtil::EnumStringLiteral *GetLogicalTypeIdValues() {
@@ -4851,19 +4852,20 @@ const StringUtil::EnumStringLiteral *GetStatementTypeValues() {
 		{ static_cast<uint32_t>(StatementType::UPDATE_EXTENSIONS_STATEMENT), "UPDATE_EXTENSIONS_STATEMENT" },
 		{ static_cast<uint32_t>(StatementType::MERGE_INTO_STATEMENT), "MERGE_INTO_STATEMENT" },
 		{ static_cast<uint32_t>(StatementType::COMPACT_STATEMENT), "COMPACT_STATEMENT" },
-		{ static_cast<uint32_t>(StatementType::CREATE_USER_STATEMENT), "CREATE_USER_STATEMENT" }
+		{ static_cast<uint32_t>(StatementType::CREATE_USER_STATEMENT), "CREATE_USER_STATEMENT" },
+		{ static_cast<uint32_t>(StatementType::DROP_USER_STATEMENT), "DROP_USER_STATEMENT" }
 	};
 	return values;
 }
 
 template<>
 const char* EnumUtil::ToChars<StatementType>(StatementType value) {
-	return StringUtil::EnumToString(GetStatementTypeValues(), 33, "StatementType", static_cast<uint32_t>(value));
+	return StringUtil::EnumToString(GetStatementTypeValues(), 34, "StatementType", static_cast<uint32_t>(value));
 }
 
 template<>
 StatementType EnumUtil::FromString<StatementType>(const char *value) {
-	return static_cast<StatementType>(StringUtil::StringToEnum(GetStatementTypeValues(), 33, "StatementType", value));
+	return static_cast<StatementType>(StringUtil::StringToEnum(GetStatementTypeValues(), 34, "StatementType", value));
 }
 
 const StringUtil::EnumStringLiteral *GetStatisticsTypeValues() {
