@@ -31,10 +31,11 @@ using std::move;
 #define DEFAULT_SCHEMA  "main"
 #define INVALID_SCHEMA  ""
 #define INVALID_CATALOG ""
-// The catalog holding the built-in functions and types. Every reference to it
-// is internal, so it carries a name no query is expected to spell: that leaves
-// `system` free for an ordinary schema, which would otherwise be ambiguous
-// between this catalog and a schema of the same name.
+// The catalog holding the built-in functions and types. Pivot serves a `system`
+// schema of its own, and while this catalog was named `system` too, a reference
+// like `system.tables` bound to the catalog instead of that schema. Renaming it
+// is what lets those references bind, and costs nothing: every reference to
+// this catalog is internal and goes through the name below.
 #define SYSTEM_CATALOG  "__duckdb_system"
 #define TEMP_CATALOG    "temp"
 #define IN_MEMORY_PATH  ":memory:"
