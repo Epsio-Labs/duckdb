@@ -31,7 +31,11 @@ using std::move;
 #define DEFAULT_SCHEMA  "main"
 #define INVALID_SCHEMA  ""
 #define INVALID_CATALOG ""
-#define SYSTEM_CATALOG  "system"
+// The catalog holding the built-in functions and types. Every reference to it
+// is internal, so it carries a name no query is expected to spell: that leaves
+// `system` free for an ordinary schema, which would otherwise be ambiguous
+// between this catalog and a schema of the same name.
+#define SYSTEM_CATALOG  "__duckdb_system"
 #define TEMP_CATALOG    "temp"
 #define IN_MEMORY_PATH  ":memory:"
 
