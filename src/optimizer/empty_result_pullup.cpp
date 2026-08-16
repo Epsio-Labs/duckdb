@@ -20,9 +20,18 @@ unique_ptr<LogicalOperator> EmptyResultPullup::CreateNullRhs(unique_ptr<LogicalO
 	rhs_op->ResolveOperatorTypes();
 	auto &types = rhs_op->types;
 
+	// References above the join address each NULL by its original column
+	// index, and a pruned operator's bindings can be sparse (e.g. columns 0
+	// and 3 of a scan survive). A projection numbers its outputs densely, so
+	// place every NULL at its binding's column index and pad the gaps with
+	// NULLs nothing references.
 	for (idx_t index = 0; index < column_bindings.size(); index++) {
-		projection_groups[column_bindings[index].table_index].emplace_back(
-		    make_uniq<BoundConstantExpression>(Value(types[index])));
+		auto &binding = column_bindings[index];
+		auto &group = projection_groups[binding.table_index];
+		while (group.size() <= binding.column_index) {
+			group.emplace_back(make_uniq<BoundConstantExpression>(Value(LogicalType::BOOLEAN)));
+		}
+		group[binding.column_index] = make_uniq<BoundConstantExpression>(Value(types[index]));
 	}
 
 	auto create_null_projection = [&](TableIndex table_index) {
@@ -68,6 +77,22 @@ unique_ptr<LogicalOperator> EmptyResultPullup::PullUpEmptyJoinChildren(unique_pt
 	}
 
 	switch (join_type) {
+	// A right anti join emits the build rows with no probe match: an empty
+	// probe matches nothing, so the join collapses to its build side, and an
+	// empty build side has no rows to emit.
+	case JoinType::RIGHT_ANTI: {
+		if (op->children[0]->type == LogicalOperatorType::LOGICAL_EMPTY_RESULT) {
+			op = std::move(op->children[1]);
+			break;
+		}
+		if (op->children[1]->type == LogicalOperatorType::LOGICAL_EMPTY_RESULT) {
+			op = make_uniq<LogicalEmptyResult>(std::move(op));
+		}
+		break;
+	}
+	// A right semi join emits build rows with a probe match; either side
+	// empty means no matches, exactly like SEMI and INNER below.
+	case JoinType::RIGHT_SEMI:
 	case JoinType::SEMI:
 	case JoinType::INNER: {
 		for (auto &child : op->children) {
