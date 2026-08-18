@@ -108,7 +108,35 @@ opt_program:
 
 
 copy_options: copy_opt_list							{ $$ = $1; }
-			| '(' generic_opt_list ')'				{ $$ = $2; }
+			| '(' copy_generic_opt_list ')'			{ $$ = $2; }
+		;
+
+copy_generic_opt_list:
+			copy_generic_opt_elem
+				{
+					$$ = list_make1($1);
+				}
+			| copy_generic_opt_list ',' copy_generic_opt_elem
+				{
+					$$ = lappend($1, $3);
+				}
+		;
+
+/*
+ * A COPY option is a generic option, except that BINARY is also accepted as
+ * a value (e.g. FORMAT binary, what psql sends for a binary \copy): BINARY
+ * is a type-name keyword, so the generic a_expr argument cannot start with
+ * it.
+ */
+copy_generic_opt_elem:
+			ColLabel generic_opt_arg
+				{
+					$$ = makeDefElem($1, $2, @1);
+				}
+			| ColLabel BINARY
+				{
+					$$ = makeDefElem($1, (PGNode *)makeStringConst("binary", @2), @1);
+				}
 		;
 
 opt_oids:
