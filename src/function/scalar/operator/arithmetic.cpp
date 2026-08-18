@@ -438,6 +438,12 @@ ScalarFunction AddFunction::GetFunction(const LogicalType &left_type, const Logi
 			                        ScalarFunction::BinaryFunction<interval_t, timestamp_t, timestamp_t, AddOperator>);
 			function.SetFallible();
 			return function;
+		} else if (right_type.id() == LogicalTypeId::TIMESTAMP_TZ) {
+			//	UTC-only build: reuse the TIMESTAMP implementation, keeping the zone marker.
+			ScalarFunction function("+", {left_type, right_type}, LogicalType::TIMESTAMP_TZ,
+			                        ScalarFunction::BinaryFunction<interval_t, timestamp_t, timestamp_t, AddOperator>);
+			function.SetFallible();
+			return function;
 		}
 		break;
 	case LogicalTypeId::TIME:
@@ -475,6 +481,17 @@ ScalarFunction AddFunction::GetFunction(const LogicalType &left_type, const Logi
 			return function;
 		}
 		break;
+	//	TIMESTAMP WITH TIME ZONE is UTC everywhere in this ICU-less build and shares TIMESTAMP's
+	//	representation, so its interval arithmetic is the UTC-calendar computation the TIMESTAMP
+	//	implementation already performs.
+	case LogicalTypeId::TIMESTAMP_TZ:
+		if (right_type.id() == LogicalTypeId::INTERVAL) {
+			ScalarFunction function("+", {left_type, right_type}, LogicalType::TIMESTAMP_TZ,
+			                        ScalarFunction::BinaryFunction<timestamp_t, interval_t, timestamp_t, AddOperator>);
+			function.SetFallible();
+			return function;
+		}
+		break;
 	default:
 		break;
 	}
@@ -506,6 +523,9 @@ ScalarFunctionSet OperatorAddFun::GetFunctions() {
 
 	add.AddFunction(AddFunction::GetFunction(LogicalType::TIMESTAMP, LogicalType::INTERVAL));
 	add.AddFunction(AddFunction::GetFunction(LogicalType::INTERVAL, LogicalType::TIMESTAMP));
+
+	add.AddFunction(AddFunction::GetFunction(LogicalType::TIMESTAMP_TZ, LogicalType::INTERVAL));
+	add.AddFunction(AddFunction::GetFunction(LogicalType::INTERVAL, LogicalType::TIMESTAMP_TZ));
 
 	add.AddFunction(AddFunction::GetFunction(LogicalType::TIME_TZ, LogicalType::INTERVAL));
 	add.AddFunction(AddFunction::GetFunction(LogicalType::INTERVAL, LogicalType::TIME_TZ));
@@ -763,6 +783,24 @@ ScalarFunction SubtractFunction::GetFunction(const LogicalType &left_type, const
 			return function;
 		}
 		break;
+	//	TIMESTAMP WITH TIME ZONE is UTC everywhere in this ICU-less build and shares TIMESTAMP's
+	//	representation, so its subtraction is the UTC computation the TIMESTAMP implementation
+	//	already performs.
+	case LogicalTypeId::TIMESTAMP_TZ:
+		if (right_type.id() == LogicalTypeId::TIMESTAMP_TZ) {
+			ScalarFunction function(
+			    "-", {left_type, right_type}, LogicalType::INTERVAL,
+			    ScalarFunction::BinaryFunction<timestamp_t, timestamp_t, interval_t, SubtractOperator>);
+			function.SetFallible();
+			return function;
+		} else if (right_type.id() == LogicalTypeId::INTERVAL) {
+			ScalarFunction function(
+			    "-", {left_type, right_type}, LogicalType::TIMESTAMP_TZ,
+			    ScalarFunction::BinaryFunction<timestamp_t, interval_t, timestamp_t, SubtractOperator>);
+			function.SetFallible();
+			return function;
+		}
+		break;
 	case LogicalTypeId::INTERVAL:
 		if (right_type.id() == LogicalTypeId::INTERVAL) {
 			ScalarFunction function(
@@ -814,12 +852,14 @@ ScalarFunctionSet OperatorSubtractFun::GetFunctions() {
 	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::DATE, LogicalType::INTEGER));
 	// we can subtract timestamps from each other
 	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::TIMESTAMP, LogicalType::TIMESTAMP));
+	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::TIMESTAMP_TZ, LogicalType::TIMESTAMP_TZ));
 	// we can subtract intervals from each other
 	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::INTERVAL, LogicalType::INTERVAL));
 	// we can subtract intervals from dates/times/timestamps, but not the other way around
 	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::DATE, LogicalType::INTERVAL));
 	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::TIME, LogicalType::INTERVAL));
 	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::TIMESTAMP, LogicalType::INTERVAL));
+	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::TIMESTAMP_TZ, LogicalType::INTERVAL));
 	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::TIME_TZ, LogicalType::INTERVAL));
 	// we can negate intervals
 	subtract.AddFunction(SubtractFunction::GetFunction(LogicalType::INTERVAL));

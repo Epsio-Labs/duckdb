@@ -1779,6 +1779,7 @@ unique_ptr<FunctionData> DatePartBind(ClientContext &context, ScalarFunction &bo
 		bound_function.SetReturnType(LogicalType::DOUBLE);
 		switch (arguments[0]->return_type.id()) {
 		case LogicalType::TIMESTAMP:
+		case LogicalType::TIMESTAMP_TZ:
 		case LogicalType::TIMESTAMP_S:
 		case LogicalType::TIMESTAMP_MS:
 		case LogicalType::TIMESTAMP_NS:
@@ -1802,6 +1803,7 @@ unique_ptr<FunctionData> DatePartBind(ClientContext &context, ScalarFunction &bo
 		bound_function.SetReturnType(LogicalType::DOUBLE);
 		switch (arguments[0]->return_type.id()) {
 		case LogicalType::TIMESTAMP:
+		case LogicalType::TIMESTAMP_TZ:
 		case LogicalType::TIMESTAMP_S:
 		case LogicalType::TIMESTAMP_MS:
 		case LogicalType::TIMESTAMP_NS:
@@ -1846,6 +1848,11 @@ ScalarFunctionSet GetGenericDatePartFunction(scalar_function_t date_func, scalar
 	ScalarFunctionSet operator_set;
 	operator_set.AddFunction(ScalarFunction({LogicalType::DATE}, LogicalType::BIGINT, std::move(date_func), nullptr,
 	                                        nullptr, date_stats, DATE_CACHE));
+	//	This build carries no ICU and no session time zone, so TIMESTAMP WITH TIME ZONE is UTC
+	//	everywhere and shares TIMESTAMP's representation; extracting a part from it is the UTC
+	//	calendar computation the TIMESTAMP implementation already performs.
+	operator_set.AddFunction(ScalarFunction({LogicalType::TIMESTAMP_TZ}, LogicalType::BIGINT, ts_func, nullptr, nullptr,
+	                                        ts_stats, DATE_CACHE));
 	operator_set.AddFunction(ScalarFunction({LogicalType::TIMESTAMP}, LogicalType::BIGINT, std::move(ts_func), nullptr,
 	                                        nullptr, ts_stats, DATE_CACHE));
 	operator_set.AddFunction(ScalarFunction({LogicalType::INTERVAL}, LogicalType::BIGINT, std::move(interval_func)));
@@ -1872,6 +1879,10 @@ ScalarFunctionSet GetGenericTimePartFunction(const LogicalType &result_type, sca
 	ScalarFunctionSet operator_set;
 	operator_set.AddFunction(
 	    ScalarFunction({LogicalType::DATE}, result_type, std::move(date_func), nullptr, nullptr, date_stats));
+	//	TIMESTAMP WITH TIME ZONE is UTC everywhere in this ICU-less build and shares TIMESTAMP's
+	//	representation, so the TIMESTAMP implementation serves it directly.
+	operator_set.AddFunction(
+	    ScalarFunction({LogicalType::TIMESTAMP_TZ}, result_type, ts_func, nullptr, nullptr, ts_stats));
 	operator_set.AddFunction(
 	    ScalarFunction({LogicalType::TIMESTAMP}, result_type, std::move(ts_func), nullptr, nullptr, ts_stats));
 	operator_set.AddFunction(ScalarFunction({LogicalType::INTERVAL}, result_type, std::move(interval_func)));
@@ -2238,12 +2249,6 @@ ScalarFunctionSet EpochNsFun::GetFunctions() {
 	using OP = DatePart::EpochNanosecondsOperator;
 	auto operator_set = GetTimePartFunction<OP>();
 
-	//	TIMESTAMP WITH TIME ZONE has the same representation as TIMESTAMP so no need to defer to ICU
-	auto tstz_func = DatePart::UnaryFunction<timestamp_t, int64_t, OP>;
-	auto tstz_stats = OP::template PropagateStatistics<timestamp_t>;
-	operator_set.AddFunction(
-	    ScalarFunction({LogicalType::TIMESTAMP_TZ}, LogicalType::BIGINT, tstz_func, nullptr, nullptr, tstz_stats));
-
 	operator_set.AddFunction(
 	    ScalarFunction({LogicalType::TIMESTAMP_NS}, LogicalType::BIGINT, ExecuteGetNanosFromTimestampNs));
 	return operator_set;
@@ -2251,25 +2256,12 @@ ScalarFunctionSet EpochNsFun::GetFunctions() {
 
 ScalarFunctionSet EpochUsFun::GetFunctions() {
 	using OP = DatePart::EpochMicrosecondsOperator;
-	auto operator_set = GetTimePartFunction<OP>();
-
-	//	TIMESTAMP WITH TIME ZONE has the same representation as TIMESTAMP so no need to defer to ICU
-	auto tstz_func = DatePart::UnaryFunction<timestamp_t, int64_t, OP>;
-	auto tstz_stats = OP::template PropagateStatistics<timestamp_t>;
-	operator_set.AddFunction(
-	    ScalarFunction({LogicalType::TIMESTAMP_TZ}, LogicalType::BIGINT, tstz_func, nullptr, nullptr, tstz_stats));
-	return operator_set;
+	return GetTimePartFunction<OP>();
 }
 
 ScalarFunctionSet EpochMsFun::GetFunctions() {
 	using OP = DatePart::EpochMillisOperator;
 	auto operator_set = GetTimePartFunction<OP>();
-
-	//	TIMESTAMP WITH TIME ZONE has the same representation as TIMESTAMP so no need to defer to ICU
-	auto tstz_func = DatePart::UnaryFunction<timestamp_t, int64_t, OP>;
-	auto tstz_stats = OP::template PropagateStatistics<timestamp_t>;
-	operator_set.AddFunction(
-	    ScalarFunction({LogicalType::TIMESTAMP_TZ}, LogicalType::BIGINT, tstz_func, nullptr, nullptr, tstz_stats));
 
 	//	Deprecated inverse BIGINT => TIMESTAMP
 	operator_set.AddFunction(
@@ -2296,12 +2288,7 @@ ScalarFunctionSet NanosecondsFun::GetFunctions() {
 	operator_set.AddFunction(
 	    ScalarFunction({LogicalType::TIMESTAMP_NS}, result_type, ns_func, nullptr, nullptr, ns_stats));
 
-	//	TIMESTAMP WITH TIME ZONE has the same representation as TIMESTAMP so no need to defer to ICU
-	auto tstz_func = DatePart::UnaryFunction<timestamp_t, TR, OP>;
-	auto tstz_stats = OP::template PropagateStatistics<timestamp_t>;
-	operator_set.AddFunction(
-	    ScalarFunction({LogicalType::TIMESTAMP_TZ}, LogicalType::BIGINT, tstz_func, nullptr, nullptr, tstz_stats));
-
+	//	The TIMESTAMP_TZ overload comes from GetTimePartFunction.
 	return operator_set;
 }
 
@@ -2389,6 +2376,10 @@ ScalarFunctionSet DatePartFun::GetFunctions() {
 	date_part.AddFunction(ScalarFunction({LogicalType::VARCHAR, LogicalType::DATE}, LogicalType::BIGINT,
 	                                     DatePartFunction<date_t>, DatePartBind));
 	date_part.AddFunction(ScalarFunction({LogicalType::VARCHAR, LogicalType::TIMESTAMP}, LogicalType::BIGINT,
+	                                     DatePartFunction<timestamp_t>, DatePartBind));
+	//	TIMESTAMP WITH TIME ZONE is UTC everywhere in this ICU-less build and shares TIMESTAMP's
+	//	representation, so the TIMESTAMP implementation serves it directly.
+	date_part.AddFunction(ScalarFunction({LogicalType::VARCHAR, LogicalType::TIMESTAMP_TZ}, LogicalType::BIGINT,
 	                                     DatePartFunction<timestamp_t>, DatePartBind));
 	date_part.AddFunction(ScalarFunction({LogicalType::VARCHAR, LogicalType::TIME}, LogicalType::BIGINT,
 	                                     DatePartFunction<dtime_t>, DatePartBind));

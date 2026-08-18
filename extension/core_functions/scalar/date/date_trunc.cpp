@@ -589,6 +589,10 @@ unique_ptr<FunctionData> DateTruncBind(ClientContext &context, ScalarFunction &b
 	case LogicalType::DATE:
 		bound_function.SetStatisticsCallback(DateTruncStats<date_t, timestamp_t>(part_code));
 		break;
+	case LogicalType::TIMESTAMP_TZ:
+		//	The statistics templates produce TIMESTAMP-typed values, which would clash with the
+		//	TIMESTAMP_TZ result type, so this overload propagates no statistics.
+		break;
 	default:
 		throw NotImplementedException("Temporal argument type for DATETRUNC");
 	}
@@ -601,6 +605,10 @@ unique_ptr<FunctionData> DateTruncBind(ClientContext &context, ScalarFunction &b
 ScalarFunctionSet DateTruncFun::GetFunctions() {
 	ScalarFunctionSet date_trunc("date_trunc");
 	date_trunc.AddFunction(ScalarFunction({LogicalType::VARCHAR, LogicalType::TIMESTAMP}, LogicalType::TIMESTAMP,
+	                                      DateTruncFunction<timestamp_t, timestamp_t>, DateTruncBind));
+	//	TIMESTAMP WITH TIME ZONE is UTC everywhere in this ICU-less build and shares TIMESTAMP's
+	//	representation, so truncation keeps the zone marker and reuses the TIMESTAMP implementation.
+	date_trunc.AddFunction(ScalarFunction({LogicalType::VARCHAR, LogicalType::TIMESTAMP_TZ}, LogicalType::TIMESTAMP_TZ,
 	                                      DateTruncFunction<timestamp_t, timestamp_t>, DateTruncBind));
 	date_trunc.AddFunction(ScalarFunction({LogicalType::VARCHAR, LogicalType::DATE}, LogicalType::TIMESTAMP,
 	                                      DateTruncFunction<date_t, timestamp_t>, DateTruncBind));
